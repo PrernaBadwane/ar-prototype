@@ -14,10 +14,15 @@ export default function ARPage() {
       // dynamic import to avoid SSR issues
       const THREE = await import("three");
       const { ARButton } = await import("three/examples/jsm/webxr/ARButton.js");
-      const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+      const { GLTFLoader } = await import(
+        "three/examples/jsm/loaders/GLTFLoader.js"
+      );
 
       const container = containerRef.current!;
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+      });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
@@ -34,7 +39,9 @@ export default function ARPage() {
       scene.add(light);
 
       // Reticle (hit-test indicator)
-      const reticleGeometry = new THREE.RingGeometry(0.07, 0.09, 32).rotateX(-Math.PI / 2);
+      const reticleGeometry = new THREE.RingGeometry(0.07, 0.09, 32).rotateX(
+        -Math.PI / 2
+      );
       const reticleMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
       const reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
       reticle.matrixAutoUpdate = false;
@@ -58,10 +65,12 @@ export default function ARPage() {
         renderer.xr.setSession(session);
 
         // request a transient hit-test source using viewer space
-        const refSpace = await session.requestReferenceSpace('viewer');
-        const hitTestSource = await (navigator as any).xr.requestHitTestSource({ space: refSpace });
+        const refSpace = await session.requestReferenceSpace("viewer");
+        const hitTestSource = await (navigator as any).xr.requestHitTestSource({
+          space: refSpace,
+        });
 
-        const localRefSpace = await session.requestReferenceSpace('local');
+        const localRefSpace = await session.requestReferenceSpace("local");
 
         // animation loop
         renderer.setAnimationLoop((timestamp, xrFrame) => {
@@ -72,9 +81,14 @@ export default function ARPage() {
           const hitTestResults = xrFrame.getHitTestResults(hitTestSource);
           if (hitTestResults.length > 0) {
             const hit = hitTestResults[0];
-            const hitPose = hit.getPose(localRefSpace);
             reticle.visible = true;
-            reticle.matrix.fromArray(hitPose.transform.matrix as any);
+            const hitPose = hit.getPose(localRefSpace);
+            if (hitPose) {
+              reticle.visible = true;
+              reticle.matrix.fromArray(hitPose.transform.matrix as any);
+            } else {
+              reticle.visible = false;
+            }
           } else {
             reticle.visible = false;
           }
@@ -82,7 +96,7 @@ export default function ARPage() {
         });
 
         // handle tap -> place model at reticle
-        session.addEventListener('select', () => {
+        session.addEventListener("select", () => {
           if (!reticle.visible || !model) return;
           model.position.setFromMatrixPosition(reticle.matrix);
           // orient model to face the camera (optional)
@@ -93,8 +107,12 @@ export default function ARPage() {
       };
 
       // add AR button (will be hidden on unsupported browsers)
-      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
-      (ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }) as HTMLElement);
+      document.body.appendChild(
+        ARButton.createButton(renderer, { requiredFeatures: ["hit-test"] })
+      );
+      ARButton.createButton(renderer, {
+        requiredFeatures: ["hit-test"],
+      }) as HTMLElement;
 
       // Gesture controls (touch) - basic implementation
       // We'll do manual touch handlers to scale/rotate/translate the placed model
@@ -117,53 +135,68 @@ export default function ARPage() {
         return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
       }
 
-      renderer.domElement.addEventListener('touchstart', (ev) => {
-        if (!model) return;
-        if (ev.touches.length === 1) {
-          lastSingleTouch = getTouchPos(ev.touches[0]);
-        } else if (ev.touches.length === 2) {
-          lastTouchDistance = distanceBetweenTouches(ev.touches[0], ev.touches[1]);
-          lastRotation = rotationBetweenTouches(ev.touches[0], ev.touches[1]);
-        }
-      }, { passive: true });
+      renderer.domElement.addEventListener(
+        "touchstart",
+        (ev) => {
+          if (!model) return;
+          if (ev.touches.length === 1) {
+            lastSingleTouch = getTouchPos(ev.touches[0]);
+          } else if (ev.touches.length === 2) {
+            lastTouchDistance = distanceBetweenTouches(
+              ev.touches[0],
+              ev.touches[1]
+            );
+            lastRotation = rotationBetweenTouches(ev.touches[0], ev.touches[1]);
+          }
+        },
+        { passive: true }
+      );
 
-      renderer.domElement.addEventListener('touchmove', (ev) => {
-        if (!model) return;
-        ev.preventDefault();
-        if (ev.touches.length === 1 && model.visible) {
-          // single-finger drag -> move model parallel to camera plane
-          const touch = ev.touches[0];
-          const dx = (touch.clientX - lastSingleTouch.x) / window.innerWidth;
-          const dy = (touch.clientY - lastSingleTouch.y) / window.innerHeight;
-          // scale delta to reasonable world units
-          const moveFactor = 1.0; // tune this factor
-          const cameraDir = new THREE.Vector3();
-          renderer.xr.getCamera(camera).getWorldDirection(cameraDir);
+      renderer.domElement.addEventListener(
+        "touchmove",
+        (ev) => {
+          if (!model) return;
+          ev.preventDefault();
+          if (ev.touches.length === 1 && model.visible) {
+            // single-finger drag -> move model parallel to camera plane
+            const touch = ev.touches[0];
+            const dx = (touch.clientX - lastSingleTouch.x) / window.innerWidth;
+            const dy = (touch.clientY - lastSingleTouch.y) / window.innerHeight;
+            // scale delta to reasonable world units
+            const moveFactor = 1.0; // tune this factor
+            const cameraDir = new THREE.Vector3();
+            renderer.xr.getCamera(camera).getWorldDirection(cameraDir);
 
-          // move along camera right and up axes
-          const cam = renderer.xr.getCamera(camera);
-          const right = new THREE.Vector3();
-          cam.matrix.extractBasis(right, new THREE.Vector3(), new THREE.Vector3());
-          model.position.addScaledVector(right, dx * moveFactor);
-          const up = new THREE.Vector3(0, 1, 0);
-          model.position.addScaledVector(up, -dy * moveFactor);
+            // move along camera right and up axes
+            const cam = renderer.xr.getCamera(camera);
+            const right = new THREE.Vector3();
+            cam.matrix.extractBasis(
+              right,
+              new THREE.Vector3(),
+              new THREE.Vector3()
+            );
+            model.position.addScaledVector(right, dx * moveFactor);
+            const up = new THREE.Vector3(0, 1, 0);
+            model.position.addScaledVector(up, -dy * moveFactor);
 
-          lastSingleTouch = getTouchPos(touch);
-        } else if (ev.touches.length === 2 && model.visible) {
-          const d = distanceBetweenTouches(ev.touches[0], ev.touches[1]);
-          const scaleChange = d / lastTouchDistance;
-          model.scale.multiplyScalar(scaleChange);
-          lastTouchDistance = d;
+            lastSingleTouch = getTouchPos(touch);
+          } else if (ev.touches.length === 2 && model.visible) {
+            const d = distanceBetweenTouches(ev.touches[0], ev.touches[1]);
+            const scaleChange = d / lastTouchDistance;
+            model.scale.multiplyScalar(scaleChange);
+            lastTouchDistance = d;
 
-          const rot = rotationBetweenTouches(ev.touches[0], ev.touches[1]);
-          const deltaRot = rot - lastRotation;
-          // rotate around Y axis
-          model.rotateY(deltaRot);
-          lastRotation = rot;
-        }
-      }, { passive: false });
+            const rot = rotationBetweenTouches(ev.touches[0], ev.touches[1]);
+            const deltaRot = rot - lastRotation;
+            // rotate around Y axis
+            model.rotateY(deltaRot);
+            lastRotation = rot;
+          }
+        },
+        { passive: false }
+      );
 
-      renderer.domElement.addEventListener('touchend', (ev) => {
+      renderer.domElement.addEventListener("touchend", (ev) => {
         // nothing special for now
       });
 
@@ -172,31 +205,36 @@ export default function ARPage() {
         // Option A: try renderer.domElement.toDataURL
         try {
           const data = renderer.domElement.toDataURL("image/png");
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = data;
           a.download = "ar-capture.png";
           a.click();
           return;
         } catch (err) {
-          console.warn("direct toDataURL failed, trying composite fallback", err);
+          console.warn(
+            "direct toDataURL failed, trying composite fallback",
+            err
+          );
         }
         // Option B: composite camera feed + renderer canvas (fallback)
         try {
           // get camera stream frame if available
-          const videoStream = await (navigator.mediaDevices as any).getUserMedia({ video: true });
+          const videoStream = await (
+            navigator.mediaDevices as any
+          ).getUserMedia({ video: true });
           const track = videoStream.getVideoTracks()[0];
           const imageCapture = new (window as any).ImageCapture(track);
           const bitmap = await imageCapture.grabFrame();
           // draw to canvas
-          const c = document.createElement('canvas');
+          const c = document.createElement("canvas");
           c.width = renderer.domElement.width;
           c.height = renderer.domElement.height;
-          const ctx = c.getContext('2d')!;
+          const ctx = c.getContext("2d")!;
           ctx.drawImage(bitmap, 0, 0, c.width, c.height);
           // draw three renderer on top (renderer.domElement might be transparent)
           ctx.drawImage(renderer.domElement, 0, 0);
           const data = c.toDataURL("image/png");
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = data;
           a.download = "ar-capture.png";
           a.click();
@@ -208,20 +246,19 @@ export default function ARPage() {
       }
 
       // attach UI controls
-      const screenshotBtn = document.createElement('button');
+      const screenshotBtn = document.createElement("button");
       screenshotBtn.textContent = "Capture";
       screenshotBtn.style.position = "absolute";
       screenshotBtn.style.bottom = "20px";
       screenshotBtn.style.left = "20px";
       screenshotBtn.style.zIndex = "9999";
-      screenshotBtn.addEventListener('click', takeScreenshot);
+      screenshotBtn.addEventListener("click", takeScreenshot);
       container.appendChild(screenshotBtn);
 
       // cleanup
-      window.addEventListener('resize', () => {
+      window.addEventListener("resize", () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
       });
-
     })();
 
     return () => {
@@ -231,11 +268,16 @@ export default function ARPage() {
   }, []);
 
   return (
-    <div ref={containerRef} style={{ width: "100vw", height: "100vh", position: "relative" }}>
+    <div
+      ref={containerRef}
+      style={{ width: "100vw", height: "100vh", position: "relative" }}
+    >
       {/* The ARButton by three.js is injected into the DOM by threejs examples */}
       <div style={{ position: "absolute", zIndex: 9999, right: 20, top: 20 }}>
         {/* Optionally include an iOS Quick Look fallback link here */}
-        <a id="quicklook-link" style={{ display: "none" }}>View in Quick Look</a>
+        <a id="quicklook-link" style={{ display: "none" }}>
+          View in Quick Look
+        </a>
       </div>
     </div>
   );
