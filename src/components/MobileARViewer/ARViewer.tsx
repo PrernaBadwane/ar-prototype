@@ -165,10 +165,10 @@ export default function ARPage() {
             // scale delta to reasonable world units
             const moveFactor = 1.0; // tune this factor
             const cameraDir = new THREE.Vector3();
-            renderer.xr.getCamera(camera).getWorldDirection(cameraDir);
+            renderer.xr.getCamera().getWorldDirection(cameraDir);
 
             // move along camera right and up axes
-            const cam = renderer.xr.getCamera(camera);
+            const cam = renderer.xr.getCamera();
             const right = new THREE.Vector3();
             cam.matrix.extractBasis(
               right,
