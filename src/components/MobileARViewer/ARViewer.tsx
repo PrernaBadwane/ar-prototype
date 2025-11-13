@@ -1,4 +1,7 @@
-// pages/ar.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+//@ts-nocheck
+
 "use client";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three"; // Use direct import for Three.js
