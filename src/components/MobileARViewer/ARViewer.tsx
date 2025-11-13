@@ -251,7 +251,6 @@ export default function ARPage() {
     try {
       const session: XRSession = await (navigator as any).xr.requestSession("immersive-ar", {
         requiredFeatures: ["hit-test"],
-        optionalFeatures: ["dom-overlay", "dom-overlay-for-handheld-ar"],
         // We will not pass domOverlay here to avoid cross-origin issues; using DOM overlay requires proper setup.
       });
 
