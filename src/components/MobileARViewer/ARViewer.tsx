@@ -12,7 +12,7 @@ interface ARState {
   camera: THREE.PerspectiveCamera | null;
   reticle: THREE.Mesh | null;
   model: THREE.Object3D | null;
-  hitTestSource: XRHitTestSource | null;
+  hitTestSource: XRHitTestSource | null | undefined; // <--- CHANGE THIS LINE
   localRefSpace: XRReferenceSpace | null;
   xrSession: XRSession | null;
   lastTouchDistance: number;
@@ -103,7 +103,7 @@ export default function ARPage() {
       // 4. Load 3D Model
       const loader = new GLTFLoader();
       loader.load(
-        "/models/oldphone.glb", // Make sure this path is correct relative to 'public' folder
+        "/models/testImage.glb", // Make sure this path is correct relative to 'public' folder
         (gltf) => {
           const model = gltf.scene;
           model.visible = false; // Hidden until placed
@@ -120,13 +120,11 @@ export default function ARPage() {
       );
 
       // 5. AR Button and Session Management
-      const arButton = ARButton.createButton(renderer, {
+     const arButton = ARButton.createButton(renderer, {
         requiredFeatures: ["hit-test"],
-        optionalFeatures: ["dom-overlay", "dom-overlay-for-handheld-ar"], // For better UI integration
-        sessionInit: {
-          domOverlay: { root: container }, // Use the container as the DOM overlay root
-        },
-      });
+        optionalFeatures: ["dom-overlay", "dom-overlay-for-handheld-ar"],
+        domOverlay: { root: container }, // This is likely the correct direct property
+      } as any); // Still cast to 'any' just in case there are other type mismatches
       container.appendChild(arButton);
       // Ensure only one button is created
       const existingArButton = container.querySelector(".ar-button");
@@ -405,7 +403,7 @@ export default function ARPage() {
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     if (isIOS && !arSupported && modelViewerRef.current) {
       // You would dynamically set the href to your .usdz model here
-      modelViewerRef.current.href = "/models/oldphone.usdz"; // Ensure you have a .usdz version
+      modelViewerRef.current.href = "/models/testImage.usdz"; // Ensure you have a .usdz version
       modelViewerRef.current.rel = "ar";
       modelViewerRef.current.style.display = "block"; // Show the link
       modelViewerRef.current.textContent = "View in your space (iOS)";
