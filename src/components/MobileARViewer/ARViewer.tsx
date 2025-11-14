@@ -124,7 +124,12 @@ export default function ARPage() {
       // Update reticle via hit-test results only if in XR session
       if (frame && arState.current.xrSession) {
         const { reticle, hitTestSource, localRefSpace } = arState.current;
-        if (hitTestSource && reticle && !arState.current.modelPlaced && localRefSpace) {
+        if (
+          hitTestSource &&
+          reticle &&
+          !arState.current.modelPlaced &&
+          localRefSpace
+        ) {
           const hitResults = frame.getHitTestResults(hitTestSource);
           if (hitResults.length > 0) {
             const hit = hitResults[0];
@@ -192,7 +197,10 @@ export default function ARPage() {
         raycaster.setFromCamera(mouse, camera);
 
         const plane = new THREE.Plane();
-        plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), model.position);
+        plane.setFromNormalAndCoplanarPoint(
+          new THREE.Vector3(0, 1, 0),
+          model.position
+        );
 
         const intersectionPoint = new THREE.Vector3();
         if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
@@ -249,10 +257,14 @@ export default function ARPage() {
       return;
     }
     try {
-      const session: XRSession = await (navigator as any).xr.requestSession("immersive-ar", {
-        requiredFeatures: ["hit-test"],
-        // We will not pass domOverlay here to avoid cross-origin issues; using DOM overlay requires proper setup.
-      });
+      const session: XRSession = await (navigator as any).xr.requestSession(
+        "immersive-ar",
+        {
+          requiredFeatures: ["local", "hit-test"],
+          optionalFeatures: ["dom-overlay"],
+          domOverlay: { root: document.body },
+        }
+      );
 
       const renderer = arState.current.renderer!;
       await renderer.xr.setSession(session);
@@ -261,9 +273,13 @@ export default function ARPage() {
 
       // Request reference spaces
       const viewerSpace = await session.requestReferenceSpace("viewer");
-      arState.current.hitTestSource = await (session as any).requestHitTestSource({ space: viewerSpace });
+      arState.current.hitTestSource = await (
+        session as any
+      ).requestHitTestSource({ space: viewerSpace });
 
-      arState.current.localRefSpace = await session.requestReferenceSpace("local");
+      arState.current.localRefSpace = await session.requestReferenceSpace(
+        "local"
+      );
 
       // Add select listener - tap on screen on AR device triggers this
       const onSelect = () => {
@@ -290,8 +306,12 @@ export default function ARPage() {
 
       // Add touch listeners to canvas for moving/scale/rotate after placed
       const canvas = arState.current.renderer!.domElement;
-      canvas.addEventListener("touchstart", handlersRef.current.touchStart, { passive: false });
-      canvas.addEventListener("touchmove", handlersRef.current.touchMove, { passive: false });
+      canvas.addEventListener("touchstart", handlersRef.current.touchStart, {
+        passive: false,
+      });
+      canvas.addEventListener("touchmove", handlersRef.current.touchMove, {
+        passive: false,
+      });
 
       // When session ends: cleanup
       const onEnd = () => {
@@ -302,7 +322,9 @@ export default function ARPage() {
       handlersRef.current.onEnd = onEnd;
     } catch (err) {
       console.error("Failed to start AR session:", err);
-      alert("Unable to start AR session. Make sure you're on a compatible device and use a secure context (https).");
+      alert(
+        "Unable to start AR session. Make sure you're on a compatible device and use a secure context (https)."
+      );
     }
   };
 
@@ -315,8 +337,14 @@ export default function ARPage() {
     }
     if (arState.current.xrSession) {
       try {
-        arState.current.xrSession.removeEventListener("select", handlersRef.current.onSelect);
-        arState.current.xrSession.removeEventListener("end", handlersRef.current.onEnd);
+        arState.current.xrSession.removeEventListener(
+          "select",
+          handlersRef.current.onSelect
+        );
+        arState.current.xrSession.removeEventListener(
+          "end",
+          handlersRef.current.onEnd
+        );
       } catch (e) {}
     }
     arState.current.hitTestSource = null;
@@ -391,7 +419,16 @@ export default function ARPage() {
       }}
     >
       {/* Top-right status / controls */}
-      <div style={{ position: "absolute", top: 12, right: 12, zIndex: 9999, display: "flex", gap: 8 }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          zIndex: 9999,
+          display: "flex",
+          gap: 8,
+        }}
+      >
         {!inSession && (
           <button
             onClick={startAR}
@@ -404,7 +441,11 @@ export default function ARPage() {
               cursor: "pointer",
               fontWeight: 600,
             }}
-            title={arSupported ? "Start AR" : "AR may not be supported on this device"}
+            title={
+              arSupported
+                ? "Start AR"
+                : "AR may not be supported on this device"
+            }
             disabled={loadingModel}
           >
             {loadingModel ? "Loading model..." : "Start AR"}
@@ -489,10 +530,12 @@ export default function ARPage() {
         {inSession && (
           <div>
             <div style={{ marginBottom: 6 }}>
-              Tap the screen to place the product. Use one finger to drag, two fingers to scale/rotate.
+              Tap the screen to place the product. Use one finger to drag, two
+              fingers to scale/rotate.
             </div>
             <div style={{ fontSize: 12, opacity: 0.9 }}>
-              After placement you can move/scale/rotate the product before capturing.
+              After placement you can move/scale/rotate the product before
+              capturing.
             </div>
           </div>
         )}
